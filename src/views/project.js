@@ -13,8 +13,18 @@ function projectContent(p) {
       <div class="markdown">${marked(p.memoryIndex)}</div>
       ${p.memoryFiles.map(f => `
         <details class="memory-file">
-          <summary>${escapeHtml(f.name)}</summary>
-          <div class="markdown">${marked(f.content)}</div>
+          <summary>
+            ${escapeHtml(f.name)}<span class="memory-ts">${formatDate(f.mtime)}</span>
+            <button class="edit-btn" data-project="${escapeHtml(encodeURIComponent(p.dirName))}" data-filename="${escapeHtml(f.filename)}">編集</button>
+          </summary>
+          <div class="markdown" data-rendered="${escapeHtml(f.filename)}">${marked(f.content)}</div>
+          <div class="editor-area" data-editor="${escapeHtml(f.filename)}" style="display:none">
+            <textarea class="editor-textarea" rows="16"></textarea>
+            <div class="editor-actions">
+              <button class="save-btn" data-project="${escapeHtml(encodeURIComponent(p.dirName))}" data-filename="${escapeHtml(f.filename)}">保存</button>
+              <button class="cancel-btn" data-filename="${escapeHtml(f.filename)}">キャンセル</button>
+            </div>
+          </div>
         </details>
       `).join('')}
     </section>
@@ -46,6 +56,7 @@ function projectContent(p) {
     <div class="detail-header">
       <div class="detail-cwd">${escapeHtml(p.cwd)}</div>
       <span class="count">${p.sessionCount} セッション</span>
+      <button class="launch-btn" data-project="${escapeHtml(encodeURIComponent(p.dirName))}">セッション開始</button>
     </div>
     ${memorySection}
     ${sessionSection}

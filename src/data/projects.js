@@ -41,7 +41,7 @@ function readMemory(dirPath) {
   while ((match = linkRe.exec(index)) !== null) {
     const filePath = path.join(memoryDir, match[2]);
     if (fs.existsSync(filePath)) {
-      files.push({ name: match[1], filename: match[2], content: stripFrontmatter(fs.readFileSync(filePath, 'utf8')) });
+      files.push({ name: match[1], filename: match[2], content: stripFrontmatter(fs.readFileSync(filePath, 'utf8')), mtime: fs.statSync(filePath).mtime });
     }
   }
 
@@ -138,4 +138,17 @@ function getSession(dirName, sessionId) {
   return { title: title || '(無題)', cwd, date, messages };
 }
 
-module.exports = { getProjects, getProject, getSession };
+function getMemoryFile(dirName, filename) {
+  const filePath = path.join(PROJECTS_DIR, dirName, 'memory', filename);
+  if (!fs.existsSync(filePath)) return null;
+  return { path: filePath, content: fs.readFileSync(filePath, 'utf8') };
+}
+
+function saveMemoryFile(dirName, filename, content) {
+  const filePath = path.join(PROJECTS_DIR, dirName, 'memory', filename);
+  if (!fs.existsSync(path.dirname(filePath))) return false;
+  fs.writeFileSync(filePath, content, 'utf8');
+  return true;
+}
+
+module.exports = { getProjects, getProject, getSession, getMemoryFile, saveMemoryFile };

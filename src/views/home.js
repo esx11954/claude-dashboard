@@ -31,11 +31,82 @@ function home(projects) {
         });
       });
 
-      detail.addEventListener('click', e => {
+      detail.addEventListener('click', async e => {
         const row = e.target.closest('.session-row');
-        if (!row) return;
-        const url = '/project/' + row.dataset.project + '/session/' + row.dataset.session;
-        window.open(url, '_blank');
+        if (row) {
+          const url = '/project/' + row.dataset.project + '/session/' + row.dataset.session;
+          window.open(url, '_blank');
+          return;
+        }
+
+        const btn = e.target.closest('.launch-btn');
+        if (btn) {
+          btn.disabled = true;
+          const res = await fetch('/api/launch/' + btn.dataset.project, { method: 'POST' });
+          if (res.ok) {
+            btn.textContent = '✓ 起動しました';
+            btn.classList.add('launch-btn--ok');
+            setTimeout(() => { btn.textContent = 'セッション開始'; btn.classList.remove('launch-btn--ok'); btn.disabled = false; }, 2000);
+          } else {
+            btn.textContent = 'エラー';
+            btn.disabled = false;
+          }
+        }
+
+        const editBtn = e.target.closest('.edit-btn');
+        if (editBtn) {
+          e.preventDefault();
+          const { project, filename } = editBtn.dataset;
+          const editorArea = detail.querySelector('.editor-area[data-editor="' + filename + '"]');
+          const textarea = editorArea.querySelector('.editor-textarea');
+          if (editorArea.style.display !== 'none') return;
+          const res = await fetch('/api/memory/' + project + '/' + filename);
+          const { content } = await res.json();
+          textarea.value = content;
+          editorArea.style.display = 'block';
+          detail.querySelector('.markdown[data-rendered="' + filename + '"]').style.display = 'none';
+        }
+
+        const saveBtn = e.target.closest('.save-btn');
+        if (saveBtn) {
+          const { project, filename } = saveBtn.dataset;
+          const editorArea = detail.querySelector('.editor-area[data-editor="' + filename + '"]');
+          const textarea = editorArea.querySelector('.editor-textarea');
+          saveBtn.disabled = true;
+          const res = await fetch('/api/memory/' + project + '/' + filename, {
+            method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: textarea.value
+          });
+          if (res.ok) {
+            const html = await fetch('/project/' + project + '?partial=1').then(r => r.text());
+            detail.innerHTML = html;
+          }
+          saveBtn.disabled = false;
+        }
+
+        const cancelBtn = e.target.closest('.cancel-btn');
+        if (cancelBtn) {
+          const filename = cancelBtn.dataset.filename;
+          detail.querySelector('.editor-area[data-editor="' + filename + '"]').style.display = 'none';
+          detail.querySelector('.markdown[data-rendered="' + filename + '"]').style.display = 'block';
+        }
+      });
+      document.addEventListener('toggle', function(e) {
+        if (!e.target.classList.contains('memory-file') || e.target.open) return;
+        e.target.querySelectorAll('.editor-area').forEach(function(ea) {
+          if (ea.style.display === 'none') return;
+          ea.style.display = 'none';
+          const rendered = e.target.querySelector('.markdown[data-rendered="' + ea.dataset.editor + '"]');
+          if (rendered) rendered.style.display = 'block';
+        });
+      }, true);
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        detail.querySelectorAll('.editor-area').forEach(function(ea) {
+          if (ea.style.display === 'none') return;
+          ea.style.display = 'none';
+          detail.querySelector('.markdown[data-rendered="' + ea.dataset.editor + '"]').style.display = 'block';
+        });
       });
     </script>`;
 
