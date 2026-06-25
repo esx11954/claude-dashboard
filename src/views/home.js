@@ -89,6 +89,30 @@ function home(projects) {
           detail.querySelector('.editor-area[data-editor="' + filename + '"]').style.display = 'none';
           detail.querySelector('.markdown[data-rendered="' + filename + '"]').style.display = 'block';
         }
+
+        const syncBtn = e.target.closest('.sync-btn');
+        if (syncBtn) {
+          const proj = syncBtn.dataset.project;
+          const status = detail.querySelector('#sync-status');
+          syncBtn.disabled = true;
+          status.textContent = '同期中...';
+          try {
+            const res = await fetch('/api/sync/' + proj, { method: 'POST' });
+            const data = await res.json();
+            if (data.error) {
+              status.textContent = 'エラー: ' + data.error;
+              syncBtn.disabled = false;
+            } else {
+              const html = await fetch('/project/' + proj + '?partial=1').then(r => r.text());
+              detail.innerHTML = html;
+              const newStatus = detail.querySelector('#sync-status');
+              if (newStatus) newStatus.textContent = data.synced + ' 件同期, ' + data.skipped + ' 件スキップ';
+            }
+          } catch {
+            status.textContent = '通信エラー';
+            syncBtn.disabled = false;
+          }
+        }
       });
       document.addEventListener('toggle', function(e) {
         if (!e.target.classList.contains('memory-file') || e.target.open) return;

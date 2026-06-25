@@ -385,3 +385,44 @@ tr:last-child td { border-bottom: none; }
   border: 1px solid #e5e5e5;
   border-bottom-left-radius: 4px;
 }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.section-header h2 { margin: 0; }
+
+.sync-btn {
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  background: #4b5563;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.sync-btn:hover { background: #374151; }
+.sync-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sync-status {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.archived-badge {
+  font-size: 0.7rem;
+  background: #e5e7eb;
+  color: #6b7280;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+.sync-info {
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin: -4px 0 10px;
+}
+.sync-info strong { color: #d97706; }

@@ -32,7 +32,7 @@ function projectContent(p) {
 
   const sessionRows = p.sessions.map(s => `
     <tr class="session-row" data-project="${escapeHtml(encodeURIComponent(p.dirName))}" data-session="${escapeHtml(encodeURIComponent(s.id))}">
-      <td>${escapeHtml(s.title)}</td>
+      <td>${escapeHtml(s.title)}${s.archived ? ' <span class="archived-badge">保存済</span>' : ''}</td>
       <td>${formatDate(s.date)}</td>
       <td class="turns">${s.turnCount} ターン</td>
     </tr>
@@ -40,9 +40,21 @@ function projectContent(p) {
 
   const sessionScript = '';
 
+  const unsyncedCount = p.liveCount - p.syncedCount;
+  const syncStatusText = p.liveCount === 0
+    ? (p.archivedCount > 0 ? `アーカイブ済 ${p.archivedCount} 件` : '')
+    : unsyncedCount === 0
+      ? `${p.liveCount} 件すべて同期済${p.archivedCount > 0 ? ` (アーカイブ ${p.archivedCount} 件)` : ''}`
+      : `${p.liveCount} 件中 ${p.syncedCount} 件同期済 — <strong>${unsyncedCount} 件未同期</strong>${p.archivedCount > 0 ? ` (アーカイブ ${p.archivedCount} 件)` : ''}`;
+
   const sessionSection = `
     <section class="section">
-      <h2>セッション履歴</h2>
+      <div class="section-header">
+        <h2>セッション履歴</h2>
+        <button class="sync-btn" data-project="${escapeHtml(encodeURIComponent(p.dirName))}">同期</button>
+        <span class="sync-status" id="sync-status"></span>
+      </div>
+      ${syncStatusText ? `<p class="sync-info">${syncStatusText}</p>` : ''}
       ${p.sessions.length === 0 ? '<p class="muted">セッションなし</p>' : `
         <table>
           <thead><tr><th>タイトル</th><th>日時</th><th>ターン数</th></tr></thead>

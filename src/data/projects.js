@@ -2,6 +2,11 @@ const fs = require('fs');
 const path = require('path');
 
 const PROJECTS_DIR = path.join(process.env.USERPROFILE || process.env.HOME, '.claude', 'projects');
+const CACHE_DIR = path.join(__dirname, '..', '..', 'projects');
+
+function getJsonPath(projectDir, jsonlName) {
+  return path.join(CACHE_DIR, projectDir, jsonlName.replace(/\.jsonl$/, '.json'));
+}
 
 function stripFrontmatter(content) {
   return content.replace(/^---[\s\S]*?---\n?/, '').trim();
@@ -50,27 +55,58 @@ function readMemory(dirPath) {
 
 function buildProject(dirName) {
   const dirPath = path.join(PROJECTS_DIR, dirName);
+  const cacheDirPath = path.join(CACHE_DIR, dirName);
 
   const jsonlFiles = fs.readdirSync(dirPath)
     .filter(f => f.endsWith('.jsonl'))
-    .map(f => ({ name: f, fullPath: path.join(dirPath, f), mtime: fs.statSync(path.join(dirPath, f)).mtime }))
-    .sort((a, b) => b.mtime - a.mtime);
+    .map(f => ({ name: f, fullPath: path.join(dirPath, f), mtime: fs.statSync(path.join(dirPath, f)).mtime }));
+
+  const liveJsonlNames = new Set(jsonlFiles.map(f => f.name));
 
   let cwd = null;
+  let syncedCount = 0;
   const sessions = jsonlFiles.map(jf => {
+    const jsonPath = getJsonPath(dirName, jf.name);
+    if (fs.existsSync(jsonPath)) {
+      const cached = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+      if (!cwd && cached.cwd) cwd = cached.cwd;
+      syncedCount++;
+      return { id: jf.name, title: cached.title || '(無題)', date: new Date(cached.lastModified || jf.mtime), turnCount: cached.turnCount, archived: false };
+    }
     const meta = parseJsonlMeta(jf.fullPath);
     if (!cwd && meta.cwd) cwd = meta.cwd;
-    return { id: jf.name, title: meta.title || '(無題)', date: jf.mtime, turnCount: meta.turnCount };
+    return { id: jf.name, title: meta.title || '(無題)', date: jf.mtime, turnCount: meta.turnCount, archived: false };
   });
 
+  let archivedCount = 0;
+  if (fs.existsSync(cacheDirPath)) {
+    fs.readdirSync(cacheDirPath)
+      .filter(f => f.endsWith('.json'))
+      .forEach(f => {
+        const jsonlName = f.replace(/\.json$/, '.jsonl');
+        if (liveJsonlNames.has(jsonlName)) return;
+        const jsonPath = path.join(cacheDirPath, f);
+        const cached = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+        if (!cwd && cached.cwd) cwd = cached.cwd;
+        archivedCount++;
+        sessions.push({ id: jsonlName, title: cached.title || '(無題)', date: new Date(cached.lastModified || fs.statSync(jsonPath).mtime), turnCount: cached.turnCount, archived: true });
+      });
+  }
+
+  sessions.sort((a, b) => b.date - a.date);
+
   const { index: memoryIndex, files: memoryFiles } = readMemory(dirPath);
-  const lastUpdated = jsonlFiles.length > 0 ? jsonlFiles[0].mtime : null;
+  const lastUpdated = sessions.length > 0 ? sessions[0].date : null;
+  const liveCount = jsonlFiles.length;
 
   return {
     dirName,
     cwd: cwd || dirName,
     lastUpdated,
-    sessionCount: jsonlFiles.length,
+    sessionCount: sessions.length,
+    liveCount,
+    syncedCount,
+    archivedCount,
     hasMemory: !!memoryIndex,
     memoryIndex,
     memoryFiles,
@@ -99,6 +135,11 @@ function getProject(dirName) {
 }
 
 function getSession(dirName, sessionId) {
+  const jsonPath = getJsonPath(dirName, sessionId);
+  if (fs.existsSync(jsonPath)) {
+    return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+  }
+
   const filePath = path.join(PROJECTS_DIR, dirName, sessionId);
   if (!fs.existsSync(filePath)) return null;
 
@@ -151,4 +192,4 @@ function saveMemoryFile(dirName, filename, content) {
   return true;
 }
 
-module.exports = { getProjects, getProject, getSession, getMemoryFile, saveMemoryFile };
+module.exports = { getProjects, getProject, getSession, getMemoryFile, saveMemoryFile, CACHE_DIR, getJsonPath, PROJECTS_DIR };

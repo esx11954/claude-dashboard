@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const { spawn } = require('child_process');
 const { getProjects, getProject, getSession, getMemoryFile, saveMemoryFile } = require('./data/projects');
+const { syncProject } = require('./data/sync');
 const { home } = require('./views/home');
 const { projectDetail } = require('./views/project');
 const { sessionPage } = require('./views/session');
@@ -49,6 +50,12 @@ router.post('/api/launch/:name', (req, res) => {
   spawn('cmd.exe', ['/c', 'start', 'pwsh.exe', '-NoExit', '-Command', `Set-Location '${cwd}'; claude`], { detached: true, stdio: 'ignore', env: cleanEnv }).unref();
 
   res.json({ ok: true });
+});
+
+router.post('/api/sync/:name', (req, res) => {
+  const result = syncProject(req.params.name);
+  if (result.error) return res.status(404).json(result);
+  res.json(result);
 });
 
 router.get('/project/:name/session/:sessionId', (req, res) => {
