@@ -5,8 +5,12 @@
 ## 起動
 
 ```bash
-npm start
+# PM2で常駐起動（推奨）
+pm2 start src/server.js --name claude-dashboard
 # http://localhost:3005
+
+# 一時起動
+npm start
 ```
 
 ## 構成

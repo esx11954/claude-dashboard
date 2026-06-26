@@ -31,6 +31,19 @@ git clone https://github.com/esx11954/claude-dashboard.git ~/.claude/dashboard
 ```bash
 cd ~/.claude/dashboard
 npm install
+```
+
+**PM2で常駐起動（推奨）**
+
+```bash
+pm2 start src/server.js --name claude-dashboard
+pm2 save  # OS再起動後も自動起動させる場合
+# → http://localhost:3005
+```
+
+**一時起動**
+
+```bash
 npm start
 # → http://localhost:3005
 ```
