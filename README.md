@@ -33,6 +33,8 @@ cd ~/.claude/dashboard
 npm install
 ```
 
+Windowsの場合は `install.bat` をダブルクリックでも可。
+
 **PM2で常駐起動（推奨）**
 
 ```bash
@@ -40,6 +42,8 @@ pm2 start src/server.js --name claude-dashboard
 pm2 save  # OS再起動後も自動起動させる場合
 # → http://localhost:3005
 ```
+
+Windowsの場合は `start.bat` をダブルクリックでも可。
 
 **一時起動**
 
