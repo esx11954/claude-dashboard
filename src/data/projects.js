@@ -40,14 +40,20 @@ function readMemory(dirPath) {
 
   const index = fs.readFileSync(indexPath, 'utf8');
   const files = [];
-  const linkRe = /\[([^\]]+)\]\(([^)]+\.md)\)/g;
-  let match;
 
-  while ((match = linkRe.exec(index)) !== null) {
-    const filePath = path.join(memoryDir, match[2]);
-    if (fs.existsSync(filePath)) {
-      files.push({ name: match[1], filename: match[2], content: stripFrontmatter(fs.readFileSync(filePath, 'utf8')), mtime: fs.statSync(filePath).mtime });
-    }
+  for (const line of index.split('\n')) {
+    const linkMatch = /\[([^\]]+)\]\(([^)]+\.md)\)/.exec(line);
+    if (!linkMatch) continue;
+    const filePath = path.join(memoryDir, linkMatch[2]);
+    if (!fs.existsSync(filePath)) continue;
+    const descMatch = /—\s*(.+)$/.exec(line);
+    files.push({
+      name: linkMatch[1],
+      filename: linkMatch[2],
+      description: descMatch ? descMatch[1].trim() : linkMatch[1],
+      content: stripFrontmatter(fs.readFileSync(filePath, 'utf8')),
+      mtime: fs.statSync(filePath).mtime,
+    });
   }
 
   return { index, files };

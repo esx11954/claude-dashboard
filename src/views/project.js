@@ -10,11 +10,12 @@ function projectContent(p) {
   const memorySection = p.memoryIndex ? `
     <section class="section">
       <h2>メモリ</h2>
-      <div class="markdown">${marked(p.memoryIndex)}</div>
-      ${p.memoryFiles.map(f => `
+      ${[...p.memoryFiles].sort((a, b) => b.mtime - a.mtime).map(f => `
         <details class="memory-file">
           <summary>
-            ${escapeHtml(f.name)}<span class="memory-ts">${formatDate(f.mtime)}</span>
+            <span class="memory-ts">${formatDate(f.mtime)}</span>
+            <span class="memory-desc">${escapeHtml(f.description)}</span>
+            <span class="memory-name">${escapeHtml(f.filename)}</span>
             <button class="edit-btn" data-project="${escapeHtml(encodeURIComponent(p.dirName))}" data-filename="${escapeHtml(f.filename)}">編集</button>
           </summary>
           <div class="markdown" data-rendered="${escapeHtml(f.filename)}">${marked(f.content)}</div>
