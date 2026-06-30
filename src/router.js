@@ -1,6 +1,20 @@
 const express = require('express');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
+
+const WIN_SHELL = (() => {
+  if (process.platform !== 'win32') return null;
+  try { execSync('pwsh.exe -Version', { stdio: 'ignore', timeout: 2000 }); return 'pwsh.exe'; }
+  catch { return 'powershell.exe'; }
+})();
+
+const MAC_TERMINAL = (() => {
+  if (process.platform !== 'darwin') return null;
+  const { existsSync } = require('fs');
+  if (existsSync('/Applications/iTerm.app')) return 'iTerm';
+  if (existsSync(`${process.env.HOME}/Applications/iTerm.app`)) return 'iTerm';
+  return 'Terminal';
+})();
 const { getProjects, getProject, getSession, getMemoryFile, saveMemoryFile } = require('./data/projects');
 const { syncProject } = require('./data/sync');
 const { home } = require('./views/home');
@@ -46,8 +60,18 @@ router.post('/api/launch/:name', (req, res) => {
   delete cleanEnv.CLAUDE_CODE_CHILD_SESSION;
   delete cleanEnv.CLAUDE_CODE_SESSION_ID;
   delete cleanEnv.CLAUDECODE;
-  const cwd = project.cwd.replace(/'/g, "''");
-  spawn('cmd.exe', ['/c', 'start', 'pwsh.exe', '-NoExit', '-Command', `Set-Location '${cwd}'; claude`], { detached: true, stdio: 'ignore', env: cleanEnv }).unref();
+  const cwd = project.cwd.replace(/'/g, "'\\''");
+  if (process.platform === 'win32') {
+    const cwdWin = project.cwd.replace(/'/g, "''");
+    spawn('cmd.exe', ['/c', 'start', WIN_SHELL, '-NoExit', '-Command', `Set-Location '${cwdWin}'; claude`], { detached: true, stdio: 'ignore', env: cleanEnv }).unref();
+  } else if (process.platform === 'darwin') {
+    const script = MAC_TERMINAL === 'iTerm'
+      ? `tell application "iTerm" to create window with default profile command "cd '${cwd}' && claude"`
+      : `tell application "Terminal" to do script "cd '${cwd}' && claude"`;
+    spawn('osascript', ['-e', script], { detached: true, stdio: 'ignore', env: cleanEnv }).unref();
+  } else {
+    spawn('bash', ['-c', `x-terminal-emulator -e bash -c "cd '${cwd}' && claude; exec bash" &`], { detached: true, stdio: 'ignore', env: cleanEnv }).unref();
+  }
 
   res.json({ ok: true });
 });
