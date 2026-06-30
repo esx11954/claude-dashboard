@@ -5,6 +5,9 @@
 ## 起動
 
 ```bash
+# PM2をグローバルインストール（初回のみ）
+npm install -g pm2
+
 # PM2で常駐起動（推奨）
 pm2 start src/server.js --name claude-dashboard
 # http://localhost:3005
